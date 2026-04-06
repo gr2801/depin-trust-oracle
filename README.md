@@ -139,18 +139,6 @@ depin-trust-oracle/
 - AKT: ~$0.456 USD
 - Ingreso potencial broker 10%: **$133/día | $4,007/mes**
 
-## Hoja de ruta
-
-- [x] Auditor local con scoring y SQLite
-- [x] Comparación de precios vs cloud (datos reales desde Vantage API)
-- [x] Precios de referencia en DB — sin hardcodear en el código
-- [ ] API REST pública (Express.js) para exponer scores — para deployar en Akash
-- [ ] Cron job integrado (auditoría automática cada 6h)
-- [ ] Webhook de alertas cuando un provider cae o sube
-- [ ] Precios Akash reales desde LCD blockchain (reemplazar estimados)
-- [ ] Registro como agente autónomo en [Olas](https://olas.network/)
-- [ ] Soporte para io.net, Render Network, Flux
-
 ## Redes soportadas
 
 | Red | Estado |
