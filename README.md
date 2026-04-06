@@ -27,6 +27,7 @@ Analiza en tiempo real la confiabilidad de los providers en **Akash Network**, a
 - **sql.js** — SQLite en WebAssembly (sin compilar, compatible Windows/Linux/Mac)
 - **Akash Console API** — `console-api.akash.network/v1` (fuente de datos on-chain)
 - **CoinGecko API** — precio AKT en tiempo real
+- **Vantage API** — precios AWS reales (~2MB, semanal) en vez del JSON oficial de 1GB
 
 ## Instalación
 
@@ -44,9 +45,20 @@ npm install
 node db/schema.js
 ```
 
-Crea `data/oracle.db` con 3 tablas: `auditorias`, `market_snapshots`, `gpu_precios`.
+Crea `data/oracle.db` con 4 tablas: `auditorias`, `market_snapshots`, `gpu_precios`, `precios_referencia`.
 
-### 2. Auditar providers GPU
+### 2. Cargar precios de referencia (primera vez y semanal)
+
+```bash
+node src/actualizar-precios.js
+```
+
+- Siembra precios de 21 modelos GPU si la tabla está vacía
+- Actualiza precios AWS on-demand (us-east-1) desde [Vantage API](https://instances.vantage.sh) (~2MB)
+- Precios Akash: estimados desde bids observados en la red (futuro: LCD Akash)
+- Opciones: `--seed` (solo sembrar), `--aws` (solo actualizar AWS)
+
+### 3. Auditar providers GPU
 
 ```bash
 node src/auditor.js
@@ -54,13 +66,20 @@ node src/auditor.js
 
 Descarga todos los providers con GPU de Akash, calcula el trust score de cada uno y guarda los resultados en la DB.
 
-### 3. Capturar snapshot de precios
+### 4. Capturar snapshot de precios
 
 ```bash
 node src/precios.js
 ```
 
-Obtiene precios de GPU actuales en Akash, compara contra AWS/GCP y guarda el historial en la DB.
+Obtiene precios de GPU actuales en Akash, compara contra AWS (precios reales desde DB) y guarda el historial.
+
+### Correr todo junto
+
+```bash
+npm run all
+# equivale a: actualizar-precios → auditor → precios
+```
 
 ## Sistema de scoring
 
@@ -89,29 +108,46 @@ Obtiene precios de GPU actuales en Akash, compara contra AWS/GCP y guarda el his
 ```
 depin-trust-oracle/
 ├── db/
-│   └── schema.js          # Inicialización SQLite
+│   └── schema.js              # Inicialización SQLite (4 tablas)
 ├── src/
-│   ├── auditor.js         # Auditoría de providers
-│   └── precios.js         # Snapshot de precios de mercado
+│   ├── actualizar-precios.js  # Actualiza precios AWS desde Vantage (semanal)
+│   ├── auditor.js             # Auditoría de providers GPU con trust score
+│   └── precios.js             # Snapshot de precios y ocupación de mercado
 ├── data/
-│   └── oracle.db          # Base de datos local (gitignored)
+│   └── oracle.db              # Base de datos local (gitignored)
 └── package.json
 ```
 
+### Tablas SQLite
+
+| Tabla | Contenido |
+|---|---|
+| `auditorias` | Score 0-100 por provider en cada ciclo |
+| `market_snapshots` | Estado del mercado (leases, AKT price, GPUs activas) |
+| `gpu_precios` | Ocupación y precios por modelo GPU en cada ciclo |
+| `precios_referencia` | Precios AWS/GCP/Akash por modelo — actualizados por `actualizar-precios.js` |
+
 ## Datos del mercado (Abril 2026)
 
-- **182 GPUs** totales en la red | **84 activas** (~46%)
-- **H100** a 76% de ocupación — GPU más demandada
+- **182 GPUs** totales en la red | **87 activas** (~48%)
+- **H100** a 78% de ocupación — GPU más demandada
 - **RTX5090** a 94% de ocupación — casi sold out
-- Precios **77-84% más baratos** que AWS equivalente
-- AKT: ~$0.45 USD
+- Precios **86-94% más baratos** que AWS on-demand (precios reales desde Vantage)
+  - H100: Akash $0.41-$0.96/hr vs AWS **$6.88/hr** (on-demand us-east-1) → **90% más barato**
+  - A100 80Gi: Akash $0.27-$0.68/hr vs AWS **$3.43/hr** → **86% más barato**
+  - T4: Akash $0.027-$0.082/hr vs AWS **$0.75/hr** → **93% más barato**
+- AKT: ~$0.456 USD
+- Ingreso potencial broker 10%: **$133/día | $4,007/mes**
 
 ## Hoja de ruta
 
 - [x] Auditor local con scoring y SQLite
-- [x] Comparación de precios vs cloud
-- [ ] API REST pública (Express.js) para exponer scores
+- [x] Comparación de precios vs cloud (datos reales desde Vantage API)
+- [x] Precios de referencia en DB — sin hardcodear en el código
+- [ ] API REST pública (Express.js) para exponer scores — para deployar en Akash
+- [ ] Cron job integrado (auditoría automática cada 6h)
 - [ ] Webhook de alertas cuando un provider cae o sube
+- [ ] Precios Akash reales desde LCD blockchain (reemplazar estimados)
 - [ ] Registro como agente autónomo en [Olas](https://olas.network/)
 - [ ] Soporte para io.net, Render Network, Flux
 
