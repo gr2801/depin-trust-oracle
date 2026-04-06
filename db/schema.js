@@ -108,11 +108,35 @@ db.run(`
 `);
 
 // Índices para queries frecuentes
+// ============================================================
+//   TABLA: precios_referencia
+//   Precios de referencia por modelo GPU (AWS/GCP/Akash)
+//   Actualizados por src/actualizar-precios.js
+// ============================================================
+db.run(`
+    CREATE TABLE IF NOT EXISTS precios_referencia (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        modelo           TEXT    NOT NULL,
+        ram              TEXT,
+        aws_usd_hr       REAL,
+        gcp_usd_hr       REAL,
+        akash_min_uakt   INTEGER,
+        akash_max_uakt   INTEGER,
+        aws_fuente       TEXT    DEFAULT 'manual',
+        akash_fuente     TEXT    DEFAULT 'manual',
+        aws_updated_at   TEXT,
+        akash_updated_at TEXT,
+        nota             TEXT,
+        UNIQUE(modelo, ram)
+    )
+`);
+
 db.run(`CREATE INDEX IF NOT EXISTS idx_auditorias_provider  ON auditorias(provider_owner)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_auditorias_timestamp ON auditorias(timestamp)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_auditorias_score     ON auditorias(score)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_gpu_precios_modelo   ON gpu_precios(modelo)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_market_timestamp     ON market_snapshots(timestamp)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_precios_modelo       ON precios_referencia(modelo)`);
 
 save();
 db.close();
@@ -121,8 +145,9 @@ console.log('✅ Base de datos inicializada correctamente');
 console.log(`📍 Ubicación: ${DB_PATH}`);
 console.log('');
 console.log('Tablas creadas:');
-console.log('  • auditorias      → historial de scores por provider');
-console.log('  • market_snapshots → estado del mercado por ciclo');
-console.log('  • gpu_precios     → precios y ocupación por modelo GPU');
+console.log('  • auditorias        → historial de scores por provider');
+console.log('  • market_snapshots  → estado del mercado por ciclo');
+console.log('  • gpu_precios       → precios y ocupación por modelo GPU');
+console.log('  • precios_referencia → precios AWS/GCP/Akash de referencia');
     });
 }

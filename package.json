@@ -6,7 +6,8 @@
   "scripts": {
     "audit": "node src/auditor.js",
     "prices": "node src/precios.js",
-    "all": "node src/auditor.js && node src/precios.js",
+    "update-prices": "node src/actualizar-precios.js",
+    "all": "node src/actualizar-precios.js && node src/auditor.js && node src/precios.js",
     "init-db": "node db/schema.js"
   },
   "keywords": [

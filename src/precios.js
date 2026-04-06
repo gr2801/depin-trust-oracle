@@ -10,39 +10,8 @@ const COINGECKO = 'https://api.coingecko.com/api/v3';
 const RED = 'akash';
 const DB_PATH = path.join(__dirname, '..', 'data', 'oracle.db');
 
-const PRECIOS_CLOUD = {
-    'h100':      { aws: 3.28, gcp: 3.67 },
-    'h200':      { aws: 4.50, gcp: 4.80 },
-    'a100':      { aws: 2.40, gcp: 2.55 },
-    'rtx5090':   { aws: 1.80, gcp: 1.90 },
-    'rtx4090':   { aws: 1.20, gcp: 1.25 },
-    'rtx4070':   { aws: 0.65, gcp: 0.70 },
-    'rtx3090ti': { aws: 0.55, gcp: 0.60 },
-    'rtx4060ti': { aws: 0.45, gcp: 0.50 },
-    't4':        { aws: 0.35, gcp: 0.38 },
-    'p40':       { aws: 0.40, gcp: 0.43 },
-    'rtx3080':   { aws: 0.50, gcp: 0.55 },
-    'gtx1070ti': { aws: 0.25, gcp: 0.28 },
-    'gtx1050ti': { aws: 0.15, gcp: 0.18 },
-    'pro6000se': { aws: 2.10, gcp: 2.20 },
-};
-
-const PRECIOS_AKASH_UAKT = {
-    'h100':      { min: 1500, max: 3500 },
-    'h200':      { min: 2000, max: 4500 },
-    'a100':      { min: 1000, max: 2500 },
-    'rtx5090':   { min: 800,  max: 2000 },
-    'rtx4090':   { min: 400,  max: 1200 },
-    'rtx4070':   { min: 200,  max: 600  },
-    'rtx3090ti': { min: 250,  max: 700  },
-    'rtx4060ti': { min: 150,  max: 400  },
-    't4':        { min: 100,  max: 300  },
-    'p40':       { min: 150,  max: 400  },
-    'rtx3080':   { min: 200,  max: 500  },
-    'gtx1070ti': { min: 80,   max: 200  },
-    'gtx1050ti': { min: 50,   max: 150  },
-    'pro6000se': { min: 600,  max: 2000 },
-};
+// Los precios de referencia se leen desde la tabla precios_referencia en DB.
+// Para actualizarlos: node src/actualizar-precios.js
 
 function toUsdHr(uaktBloque, aktUsd) {
     return (uaktBloque * 600 / 1_000_000) * aktUsd;
@@ -83,6 +52,20 @@ async function capturarPrecios() {
 
     const { db, save } = await abrirDB();
     const timestamp = new Date().toISOString();
+
+    // Cargar precios de referencia desde DB
+    const refRows = query(db, 'SELECT modelo, ram, aws_usd_hr, gcp_usd_hr, akash_min_uakt, akash_max_uakt FROM precios_referencia');
+    // Mapa por modelo (si hay varias RAMs del mismo modelo, se queda con la primera que matchee)
+    const PRECIOS_CLOUD = {};
+    const PRECIOS_AKASH_UAKT = {};
+    for (const r of refRows) {
+        const k = r.modelo;
+        if (!PRECIOS_CLOUD[k])      PRECIOS_CLOUD[k]      = { aws: r.aws_usd_hr, gcp: r.gcp_usd_hr };
+        if (!PRECIOS_AKASH_UAKT[k]) PRECIOS_AKASH_UAKT[k] = { min: r.akash_min_uakt, max: r.akash_max_uakt };
+    }
+    if (refRows.length === 0) {
+        console.log('⚠️  Tabla precios_referencia vacía. Ejecutá primero: node src/actualizar-precios.js');
+    }
 
     process.stdout.write('⏳ Descargando datos de mercado...');
     const [gpuRes, dashRes, aktRes] = await Promise.all([

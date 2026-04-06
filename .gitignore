@@ -4,3 +4,4 @@ data/*.json
 .env
 *.log
 *.txt
+probe-api.js
