@@ -1,7 +1,6 @@
 node_modules/
-data/*.db
-data/*.json
+data/
 .env
 *.log
 *.txt
-probe-api.js
+probe-*.js
