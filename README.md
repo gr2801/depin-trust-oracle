@@ -6,9 +6,12 @@ Analiza en tiempo real la confiabilidad de los providers en **Akash Network**, a
 ## ¿Para qué sirve?
 
 - Saber **qué providers GPU son confiables** antes de deployar un workload
-- **Comparar precios** de GPU en Akash vs AWS/GCP en tiempo real
+- Ver **ocupación real** de cada modelo GPU en la red (datos en vivo)
+- Usar **precios AWS on-demand como referencia** para calibrar tus bids en Akash
 - Acumular **historial de performance** de cada provider en SQLite local
 - Base para construir un **agente autónomo** en ecosistemas como [Olas/Autonolas](https://olas.network/)
+
+> **Nota sobre precios Akash:** Akash funciona por **subasta inversa** — no existe una lista de precios por modelo. El precio real se determina cuando hacés un deployment en [console.akash.network](https://console.akash.network). Este oracle muestra la ocupación de la red y el precio AWS equivalente como referencia.
 
 ## Datos que entrega
 
@@ -17,8 +20,9 @@ Analiza en tiempo real la confiabilidad de los providers en **Akash Network**, a
    GPU: h100 80Gi, rtx4090 24Gi
    EXCELENTE | Online: Sí | Uptime30d: 99.8% | Auditado: Sí
 
-💰 H100 80Gi | 48/63 alquiladas | Akash: $0.41-$0.96/hr | AWS: $3.28/hr | 79% más barato
-💰 Ingreso potencial broker (10%): $126.90/día | $3,807/mes
+🖥️  H100    80Gi  |  49/63  alquiladas ( 78%) | AWS ref: $6.880/hr
+🖥️  RTX5090 32Gi  |  15/16  alquiladas ( 94%) | sin equiv. AWS
+🖥️  H200    141Gi |  11/36  alquiladas ( 31%) | AWS ref: $7.912/hr
 ```
 
 ## Stack
@@ -27,7 +31,7 @@ Analiza en tiempo real la confiabilidad de los providers en **Akash Network**, a
 - **sql.js** — SQLite en WebAssembly (sin compilar, compatible Windows/Linux/Mac)
 - **Akash Console API** — `console-api.akash.network/v1` (fuente de datos on-chain)
 - **CoinGecko API** — precio AKT en tiempo real
-- **Vantage API** — precios AWS reales (~2MB, semanal) en vez del JSON oficial de 1GB
+- **Vantage API** — precios AWS on-demand reales (~2MB, semanal) sin hardcoding en el código
 
 ## Instalación
 
@@ -53,10 +57,10 @@ Crea `data/oracle.db` con 4 tablas: `auditorias`, `market_snapshots`, `gpu_preci
 node src/actualizar-precios.js
 ```
 
-- Siembra precios de 21 modelos GPU si la tabla está vacía
-- Actualiza precios AWS on-demand (us-east-1) desde [Vantage API](https://instances.vantage.sh) (~2MB)
-- Precios Akash: estimados desde bids observados en la red (futuro: LCD Akash)
-- Opciones: `--seed` (solo sembrar), `--aws` (solo actualizar AWS)
+- Descubre automáticamente los modelos GPU activos en la red desde `/v1/gpu`
+- Actualiza precios AWS on-demand (us-east-1, Linux) desde [Vantage API](https://instances.vantage.sh) (~2MB)
+- Consumer GPUs (RTX/GTX/P40) se registran sin equivalente AWS — Akash es la única fuente
+- Opción: `--aws` (solo actualizar precios AWS, sin re-descubrir modelos)
 
 ### 3. Auditar providers GPU
 
@@ -129,15 +133,15 @@ depin-trust-oracle/
 
 ## Datos del mercado (Abril 2026)
 
-- **182 GPUs** totales en la red | **87 activas** (~48%)
-- **H100** a 78% de ocupación — GPU más demandada
+- **182 GPUs** totales en la red | **86 activas** (~47%)
 - **RTX5090** a 94% de ocupación — casi sold out
-- Precios **86-94% más baratos** que AWS on-demand (precios reales desde Vantage)
-  - H100: Akash $0.41-$0.96/hr vs AWS **$6.88/hr** (on-demand us-east-1) → **90% más barato**
-  - A100 80Gi: Akash $0.27-$0.68/hr vs AWS **$3.43/hr** → **86% más barato**
-  - T4: Akash $0.027-$0.082/hr vs AWS **$0.75/hr** → **93% más barato**
-- AKT: ~$0.456 USD
-- Ingreso potencial broker 10%: **$133/día | $4,007/mes**
+- **H100** a 78% de ocupación — GPU más demandada
+- **Precios AWS de referencia** (on-demand us-east-1, fuente: Vantage):
+  - H200 141Gi: **$7.91/hr** | H100 80Gi: **$6.88/hr**
+  - A100 80Gi: **$3.43/hr** | A100 40Gi: **$2.74/hr**
+  - L4 24Gi: **$0.80/hr** | T4 16Gi: **$0.53/hr**
+- Precio Akash real: por subasta — se determina al deployar
+- AKT: ~$0.45 USD | Gasto diario en la red: ~$2,858 USD
 
 ## Redes soportadas
 
