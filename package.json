@@ -1,0 +1,27 @@
+{
+  "name": "depin-trust-oracle",
+  "version": "0.1.0",
+  "description": "Automated trust scoring and auditing for GPU providers on DePIN networks (Akash, io.net, Render)",
+  "main": "src/auditor.js",
+  "scripts": {
+    "audit": "node src/auditor.js",
+    "prices": "node src/precios.js",
+    "all": "node src/auditor.js && node src/precios.js",
+    "init-db": "node db/schema.js"
+  },
+  "keywords": [
+    "depin",
+    "akash",
+    "gpu",
+    "web3",
+    "oracle",
+    "trust-score",
+    "sqlite"
+  ],
+  "author": "gr2801",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "sql.js": "^1.14.1"
+  }
+}
